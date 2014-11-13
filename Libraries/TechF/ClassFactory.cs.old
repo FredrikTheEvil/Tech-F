@@ -1,0 +1,359 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using TechF.Configuration;
+
+namespace TechF
+{
+    public class ClassFactory
+    {
+        internal static Dictionary<System.Type, Func<object>> _factories = new Dictionary<Type, Func<object>>();
+        internal static ReaderWriterLock _factoriesLock = new ReaderWriterLock();
+
+        internal class ReadSession : IDisposable
+        {
+            public ReadSession()
+            {
+
+                _factoriesLock.AcquireReaderLock(-1);
+            }
+
+            public void Dispose()
+            {
+                _factoriesLock.ReleaseReaderLock();
+            }
+        }
+        internal class WriteSession : IDisposable
+        {
+            public WriteSession()
+            {
+                _factoriesLock.AcquireWriterLock(-1);
+            }
+
+            public void Dispose()
+            {
+                _factoriesLock.ReleaseWriterLock();
+            }
+        }
+
+        /*
+        internal static bool ValidateConstructor(Type type)
+        {
+            foreach (var ctor in type.GetConstructors())
+            {
+                if (!ctor.IsPublic)
+                    return false;
+                if (ctor.ContainsGenericParameters)
+                    return false;
+                foreach (var param in ctor.GetParameters())
+                {
+                    if (param.ParameterType.ContainsGenericParameters)
+                        return false;
+                    if (param.ParameterType.IsValueType && !param.ParameterType.IsPrimitive)
+                        return false; // Structs not supported
+                }
+            }
+            return true;
+        }
+
+        internal static bool ValidateConfigurationTypes(Type target, Type implementation)
+        {
+            if (target == null || implementation == null)
+                return false;
+
+            if (!target.IsAssignableFrom(implementation))
+                return false;
+            if (implementation.IsAbstract)
+                return false;
+            if (!ValidateConstructor(implementation))
+                return false;
+
+            return true;
+        }
+
+        internal static bool ConvertValue(Type type, string value, out object obj)
+        {
+            try
+            {
+                if (value == null)
+                {
+                    if (type.IsByRef)
+                    {
+                        obj = null;
+                        return true;
+                    }
+                }
+                else if (type == typeof(string))
+                {
+                    obj = value;
+                    return true;
+                }
+                else if (type == typeof(Int16))
+                {
+                    obj = Convert.ToInt16(value);
+                    return true;
+                }
+                else if (type == typeof(Int32))
+                {
+                    obj = Convert.ToInt32(value);
+                    return true;
+                }
+                else if (type == typeof(Int64))
+                {
+                    obj = Convert.ToInt64(value);
+                    return true;
+                }
+                else if (type == typeof(UInt16))
+                {
+                    obj = Convert.ToUInt16(value);
+                    return true;
+                }
+                else if (type == typeof(UInt32))
+                {
+                    obj = Convert.ToUInt32(value);
+                    return true;
+                }
+                else if (type == typeof(UInt64))
+                {
+                    obj = Convert.ToUInt64(value);
+                    return true;
+                }
+                else if (type == typeof(Single))
+                {
+                    obj = Convert.ToSingle(value);
+                    return true;
+                }
+                else if (type == typeof(Double))
+                {
+                    obj = Convert.ToDouble(value);
+                    return true;
+                }
+                else if (type == typeof(Decimal))
+                {
+                    obj = Convert.ToDecimal(value);
+                    return true;
+                }
+                else if (type == typeof(Byte))
+                {
+                    obj = Convert.ToByte(value);
+                    return true;
+                }
+                else if (type == typeof(SByte))
+                {
+                    obj = Convert.ToSByte(value);
+                    return true;
+                }
+                else if (type == typeof(DateTime))
+                {
+                    obj = Convert.ToDateTime(value);
+                    return true;
+                }
+                else if (type == typeof(DateTimeOffset))
+                {
+                    DateTimeOffset dto;
+                    if (DateTimeOffset.TryParse(value, out dto))
+                    {
+                        obj = dto;
+                        return true;
+                    }
+                }
+                else if(type == typeof(Boolean))
+                {
+                    bool val = false;
+                    if(Boolean.TryParse(value, out val))
+                    {
+                        obj = val;
+                        return true;
+                    }
+                }
+                else if (type.IsEnum)
+                {
+                    var underlyingType = type.GetEnumUnderlyingType();
+                    object val;
+                    if (ConvertValue(underlyingType, value, out val))
+                    {
+                        obj = val;
+                        return true;
+                    } else
+                    {
+                        val = Enum.Parse(type, value);
+                        obj = val;
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+            }
+            obj = null;
+            return false;
+        }
+
+        internal static void TryBind(object obj, PropertyInfo prop, string value)
+        {
+            object output;
+            if (ConvertValue(prop.PropertyType, value, out output))
+                prop.SetValue(obj, output);
+        }
+
+        internal static Func<object> BuildCreateInstanceDelegate(Type factoryType, IReadOnlyDictionary<string, string> properties)
+        {
+            return () =>
+            {
+                Dictionary<string, string> parameterCache = new Dictionary<string, string>();
+                Dictionary<Type, object> typeParameterCache = new Dictionary<Type, object>();
+
+                foreach (var ctor in factoryType.GetConstructors())
+                {
+                    if (!ctor.IsPublic)
+                        continue;
+                    if (ctor.ContainsGenericParameters)
+                        continue;
+                    foreach (var param in ctor.GetParameters())
+                    {
+                        if (param.ParameterType.ContainsGenericParameters)
+                            continue;
+                        if (param.ParameterType.IsValueType && !param.ParameterType.IsPrimitive)
+                            continue; // Structs not supported
+                    }
+
+                    bool parametersResolved = true;
+                    List<object> parameters = new List<object>();
+                    foreach (var ctorParam in ctor.GetParameters())
+                    {
+
+                        if (ctorParam.ParameterType.IsValueType)
+                        {
+                            parametersResolved = false;
+                            break;
+                        }
+                        else
+                        {
+                            var o = Resolve(ctorParam.ParameterType);
+                            if (o != null)
+                            {
+                                typeParameterCache[ctorParam.ParameterType] = o;
+                                parameters.Add(o);
+                            }
+                            else
+                            {
+                                parametersResolved = false;
+                                break;
+                            }
+                        }
+
+                    }
+                    if (parametersResolved)
+                    {
+                        var obj = ctor.Invoke(parameters.ToArray());
+                        if (obj != null)
+                        {
+                            if (properties.Any())
+                            {
+                                // Apply property binding
+                                foreach (var prop in factoryType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                                {
+                                    var n = prop.Name;
+                                    if (prop.CanWrite && properties.ContainsKey(n))
+                                    {
+                                        TryBind(obj, prop, properties[n]);
+                                    }
+                                }
+                            }
+                        }
+                        return obj;
+                    }
+                }
+
+                return null;
+            };
+        }
+
+        public static void LoadFromConfiguration(IClassFactoryConfiguration configuration)
+        {
+            foreach (var factory in configuration.ClassFactories)
+            {
+                var typeName = factory.Type;
+                var factoryTypeName = factory.FactoryType;
+
+                var props = factory.FactoryProperties ?? new IClassFactoryProperty[] { };
+                IReadOnlyDictionary<string, string> factoryBinder = props.ToDictionary(x => x.Name, x => x.Value);
+
+                try
+                {
+                    Type type = Type.GetType(typeName);
+                    Type factoryType = Type.GetType(factoryTypeName);
+
+
+                    if (ValidateConfigurationTypes(type, factoryType))
+                    {
+                        using (new WriteSession())
+                        {
+                            _factories[type] = BuildCreateInstanceDelegate(factoryType, factoryBinder);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        public static void SetFactoryForType<T>(Func<T> factory) where T : class
+        {
+            using (new WriteSession())
+            {
+                _factories[typeof(T)] = () => factory();
+            }
+        }
+        public static void SetImplementationForType<TType, TImplementation>() where TImplementation : TType
+        {
+            using (new WriteSession())
+            {
+                _factories[typeof(TType)] = BuildCreateInstanceDelegate(typeof(TImplementation), new Dictionary<string, string>());
+            }
+        }
+        public static void SetInstanceForType<T>(T instance) where T : class
+        {
+            using (new WriteSession())
+            {
+                _factories[typeof(T)] = () => instance;
+            }
+        }
+        public static object Resolve(Type type)
+        {
+            using (new ReadSession())
+            {
+                if (_factories.ContainsKey(type))
+                {
+                    Func<object> factory = _factories[type];
+                    if (factory != null)
+                        return factory();
+                }
+            }
+            return null;
+        }
+        public static T Resolve<T>() where T : class
+        {
+            using (new ReadSession())
+            {
+                var t = typeof(T);
+                if (_factories.ContainsKey(t))
+                {
+                    Func<object> factory = _factories[t];
+                    if (factory != null)
+                        return (T)factory();
+                }
+            }
+            return default(T);
+        }*/
+
+        //public static T Resolve<T>()
+    }
+}

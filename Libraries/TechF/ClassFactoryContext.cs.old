@@ -1,0 +1,167 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace TechF
+{
+    public class ClassFactoryContext : IDisposable
+    {
+        private Dictionary<System.Type, Func<object>> _factories = new Dictionary<Type, Func<object>>();
+        internal ReaderWriterLock _factoriesLock = new ReaderWriterLock();
+
+        internal class ReadSession : IDisposable
+        {
+            private ClassFactoryContext context;
+
+            public ReadSession(ClassFactoryContext context)
+            {
+                this.context = context;
+                this.context._factoriesLock.AcquireReaderLock(-1);
+            }
+
+            public void Dispose()
+            {
+                this.context._factoriesLock.ReleaseReaderLock();
+            }
+        }
+        internal class WriteSession : IDisposable
+        {
+            private ClassFactoryContext context;
+
+            public WriteSession(ClassFactoryContext context)
+            {
+                this.context = context;
+                this.context._factoriesLock.AcquireWriterLock(-1);
+            }
+
+            public void Dispose()
+            {
+                this.context._factoriesLock.ReleaseWriterLock();
+            }
+        }
+
+        //public T Resolve<T>() where T : class
+        //{
+        //    var t = typeof(T);
+        //    T ctxResolve = (T)ResolveContext(t);
+        //    if (ctxResolve != null)
+        //        return ctxResolve;
+
+        //    return ((T)ClassFactory.Resolve(t));
+        //}
+
+        //public void SetFactoryForType<T>(Func<ClassFactoryContext, T> factory) where T : class
+        //{
+        //    using (new WriteSession(this))
+        //    {
+        //        _factories[typeof(T)] = () => factory(this);
+        //    }
+        //}
+        //public void SetImplementationForType<TType, TImplementation>() where TImplementation : TType
+        //{
+        //    using (new WriteSession(this))
+        //    {
+        //        _factories[typeof(TType)] = BuildCreateInstanceDelegate(typeof(TImplementation));
+        //    }
+        //}
+        //public void SetInstanceForType<T>(T instance) where T : class
+        //{
+        //    using (new WriteSession(this))
+        //    {
+        //        _factories[typeof(T)] = () => instance;
+        //    }
+        //}
+        //public object ResolveContext(Type t)
+        //{
+        //    using (new ReadSession(this))
+        //    {
+        //        if (_factories.ContainsKey(t))
+        //        {
+        //            Func<object> factory = _factories[t];
+        //            if (factory != null)
+        //                return factory();
+        //        }
+        //    }
+        //    return null;
+        //}
+
+        //public object Resolve(Type type)
+        //{
+        //    using (new ReadSession(this))
+        //    {
+        //        if (_factories.ContainsKey(type))
+        //        {
+        //            Func<object> factory = _factories[type];
+        //            if (factory != null)
+        //                return factory();
+        //        }
+        //    }
+        //    return null;
+        //}
+
+
+        //internal Func<object> BuildCreateInstanceDelegate(Type factoryType)
+        //{
+        //    return () =>
+        //    {
+        //        Dictionary<string, string> parameterCache = new Dictionary<string, string>();
+        //        Dictionary<Type, object> typeParameterCache = new Dictionary<Type, object>();
+
+        //        foreach (var ctor in factoryType.GetConstructors())
+        //        {
+        //            if (!ctor.IsPublic)
+        //                continue;
+        //            if (ctor.ContainsGenericParameters)
+        //                continue;
+        //            foreach (var param in ctor.GetParameters())
+        //            {
+        //                if (param.ParameterType.ContainsGenericParameters)
+        //                    continue;
+        //                if (param.ParameterType.IsValueType && !param.ParameterType.IsPrimitive)
+        //                    continue; // Structs not supported
+        //            }
+
+        //            bool parametersResolved = true;
+        //            List<object> parameters = new List<object>();
+        //            foreach (var ctorParam in ctor.GetParameters())
+        //            {
+
+        //                if (ctorParam.ParameterType.IsValueType)
+        //                {
+        //                    parametersResolved = false;
+        //                    break;
+        //                }
+        //                else
+        //                {
+        //                    var o = Resolve(ctorParam.ParameterType);
+        //                    if (o != null)
+        //                    {
+        //                        typeParameterCache[ctorParam.ParameterType] = o;
+        //                        parameters.Add(o);
+        //                    }
+        //                    else
+        //                    {
+        //                        parametersResolved = false;
+        //                        break;
+        //                    }
+        //                }
+
+        //            }
+        //            if (parametersResolved)
+        //            {
+        //                return ctor.Invoke(parameters.ToArray());
+        //            }
+        //        }
+
+        //        return null;
+        //    };
+        //}
+
+        public void Dispose()
+        {
+        }
+    }
+}
