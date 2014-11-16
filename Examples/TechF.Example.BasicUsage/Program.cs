@@ -13,9 +13,9 @@
  //
  // Contributors:
  //     Fredrik A. Kristiansen<fredrikaxk@gmail.com>
- 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,8 +86,7 @@ namespace TechF.Example.BasicUsage
                 // Create property dictionary to use for
                 // setting constructor argument and applying
                 // property binding
-                var props = new Dictionary<string, string>();
-                props["Text"] = "Hello world!";
+                var props = ImmutableDictionary<string, string>.Empty.Add("Text", "Hello world!");
                 // Initialize IDummyDataSource to use the DummyDataSource
                 // implementation using the provided properties for property
                 // binding the Text property (properties are bound when they

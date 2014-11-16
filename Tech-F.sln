@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TechF", "Libraries\TechF\TechF.csproj", "{D797F89B-AEF7-4419-B7C4-4CEED60F60F2}"
 EndProject
@@ -19,6 +19,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TechF.Examples.BasicWebApi", "Examples\TechF.Examples.BasicWebApi\TechF.Examples.BasicWebApi.csproj", "{525D7C7A-D1A4-4713-8481-F65A64595F0C}"
 EndProject
 Global
+	GlobalSection(CodealikeProperties) = postSolution
+		SolutionGuid = 6412ca07-3a0b-4735-8c31-3bdf04cfa578
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU

@@ -15,6 +15,7 @@
 //     Fredrik A. Kristiansen<fredrikaxk@gmail.com>
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -91,7 +92,7 @@ namespace TechF
         /// <param name="factoryType">The type that implements 'type'</param>
         /// <param name="properties">Constant properties for parameter binding and constructor injection</param>
         /// <returns>A options object that can be used for setting persistence and property binding</returns>
-        public ClassFactoryOptions SetFactoryType(Type type, Type factoryType, IReadOnlyDictionary<string, string> properties = null)
+        public ClassFactoryOptions SetFactoryType(Type type, Type factoryType, ImmutableDictionary<string, string> properties = null)
         {
             if (!type.IsAssignableFrom(factoryType))
                 throw new Exceptions.ClassFactoryTypeMismatchException();
@@ -112,7 +113,7 @@ namespace TechF
         /// <param name="factoryType">The type that implements 'type'</param>
         /// <param name="properties">Constant properties for parameter binding and constructor injection</param>
         /// <returns>A options object that can be used for setting persistence and property binding</returns>
-        public ClassFactoryOptions SetFactoryType<TType, TImplementation>(IReadOnlyDictionary<string, string> properties = null) where TType : class where TImplementation : TType
+        public ClassFactoryOptions SetFactoryType<TType, TImplementation>(ImmutableDictionary<string, string> properties = null) where TType : class where TImplementation : TType
         {
             return SetFactoryType(typeof(TType), typeof(TImplementation), properties);
         }

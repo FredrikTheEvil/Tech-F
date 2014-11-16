@@ -15,6 +15,7 @@
 //     Fredrik A. Kristiansen<fredrikaxk@gmail.com>
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -71,7 +72,7 @@ namespace TechF
             _persist = binder._persist;
             _lastBuild = new WeakReference(null);
         }
-        internal ClassFactoryBinder(ClassFactoryContext context, Type type, IReadOnlyDictionary<string, string> properties)
+        internal ClassFactoryBinder(ClassFactoryContext context, Type type, ImmutableDictionary<string, string> properties)
         {
             _context = context;
             _type = type;
@@ -85,7 +86,7 @@ namespace TechF
         internal Func<ClassFactoryBinder, object> _build;
         internal WeakReference _lastBuild = null;
 
-        internal IReadOnlyDictionary<string, string> _properties;
+        internal ImmutableDictionary<string, string> _properties;
 
         internal bool _persist;
         internal bool _bindProperties = true;

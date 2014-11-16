@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -91,7 +92,7 @@ namespace TechF
         /// <param name="factoryType">The type that implements 'type'</param>
         /// <param name="properties">Constant properties for parameter binding and constructor injection</param>
         /// <returns>A options object that can be used for setting persistence and property binding</returns>
-        public static ClassFactoryOptions SetFactoryType(Type type, Type factoryType, IReadOnlyDictionary<string, string> properties = null)
+        public static ClassFactoryOptions SetFactoryType(Type type, Type factoryType, ImmutableDictionary<string, string> properties = null)
         {
             if (!type.IsAssignableFrom(factoryType))
                 throw new Exceptions.ClassFactoryTypeMismatchException();
@@ -111,7 +112,7 @@ namespace TechF
         /// <typeparam name="TImplementation">The type that implements 'type'</typeparam>
         /// <param name="properties">Constant properties for parameter binding and constructor injection</param>
         /// <returns>A options object that can be used for setting persistence and property binding</returns>
-        public static ClassFactoryOptions SetFactoryType<TType, TImplementation>(IReadOnlyDictionary<string, string> properties = null) where TType : class where TImplementation : TType
+        public static ClassFactoryOptions SetFactoryType<TType, TImplementation>(ImmutableDictionary<string, string> properties = null) where TType : class where TImplementation : TType
         {
             return SetFactoryType(typeof(TType), typeof(TImplementation), properties);
         }
@@ -128,7 +129,7 @@ namespace TechF
                 var factoryTypeName = factory.FactoryType;
 
                 var props = factory.FactoryProperties ?? new IClassFactoryProperty[] { };
-                IReadOnlyDictionary<string, string> factoryBinder = props.ToDictionary(x => x.Name, x => x.Value);
+                ImmutableDictionary<string, string> factoryBinder = props.ToImmutableDictionary(x => x.Name, x => x.Value);
 
                 try
                 {

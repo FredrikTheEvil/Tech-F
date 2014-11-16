@@ -16,6 +16,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -103,30 +104,27 @@ namespace TechF.Test
 
     public class ClassFactoryContextTests
     {
-        private IReadOnlyDictionary<string, string> CreateProperties()
+        private ImmutableDictionary<string, string> CreateProperties()
         {
-            var d = new Dictionary<string, string>();
-
-            d["StringProperty"] = TestClassPropertyValues.StringProperty;
-            d["BooleanProperty"] = TestClassPropertyValues.BooleanProperty.ToString();
-            d["SignedByteProperty"] = TestClassPropertyValues.SignedByteProperty.ToString();
-            d["UnsignedByteProperty"] = TestClassPropertyValues.UnsignedByteProperty.ToString();
-            d["SignedShortProperty"] = TestClassPropertyValues.SignedShortProperty.ToString();
-            d["UnsignedShortProperty"] = TestClassPropertyValues.UnsignedShortProperty.ToString();
-            d["SignedIntProperty"] = TestClassPropertyValues.SignedIntProperty.ToString();
-            d["UnsignedIntProperty"] = TestClassPropertyValues.UnsignedIntProperty.ToString();
-            d["SignedLongProperty"] = TestClassPropertyValues.SignedLongProperty.ToString();
-            d["UnsignedLongProperty"] = TestClassPropertyValues.UnsignedLongProperty.ToString();
-            d["SingleProperty"] = TestClassPropertyValues.SingleProperty.ToString();
-            d["DoubleProperty"] = TestClassPropertyValues.DoubleProperty.ToString();
-            d["DecimalProperty"] = TestClassPropertyValues.DecimalProperty.ToString();
-            d["EnumProperty"] = TestClassPropertyValues.EnumProperty.ToString();
-            d["NullProperty"] = null;
-            d["EnumPropertyNumeric"] = ((int)TestClassPropertyValues.EnumProperty).ToString();
-            d["DateTimeOffsetProperty"] = TestClassPropertyValues.DateTimeOffsetProperty.ToString();
-            d["DateTimeProperty"] = TestClassPropertyValues.DateTimeProperty.ToString();
-
-            return d;
+            return ImmutableDictionary<string, string>.Empty
+                .Add("StringProperty",TestClassPropertyValues.StringProperty)
+                .Add("BooleanProperty", TestClassPropertyValues.BooleanProperty.ToString())
+                .Add("SignedByteProperty", TestClassPropertyValues.SignedByteProperty.ToString())
+                .Add("UnsignedByteProperty", TestClassPropertyValues.UnsignedByteProperty.ToString())
+                .Add("SignedShortProperty", TestClassPropertyValues.SignedShortProperty.ToString())
+                .Add("UnsignedShortProperty", TestClassPropertyValues.UnsignedShortProperty.ToString())
+                .Add("SignedIntProperty", TestClassPropertyValues.SignedIntProperty.ToString())
+                .Add("UnsignedIntProperty", TestClassPropertyValues.UnsignedIntProperty.ToString())
+                .Add("SignedLongProperty", TestClassPropertyValues.SignedLongProperty.ToString())
+                .Add("UnsignedLongProperty", TestClassPropertyValues.UnsignedLongProperty.ToString())
+                .Add("SingleProperty", TestClassPropertyValues.SingleProperty.ToString())
+                .Add("DoubleProperty", TestClassPropertyValues.DoubleProperty.ToString())
+                .Add("DecimalProperty", TestClassPropertyValues.DecimalProperty.ToString())
+                .Add("EnumProperty", TestClassPropertyValues.EnumProperty.ToString())
+                .Add("NullProperty", null)
+                .Add("EnumPropertyNumeric", ((int)TestClassPropertyValues.EnumProperty).ToString())
+                .Add("DateTimeOffsetProperty", TestClassPropertyValues.DateTimeOffsetProperty.ToString())
+                .Add("DateTimeProperty", TestClassPropertyValues.DateTimeProperty.ToString());
         }
         private TType CreateWithProperties<TType, TImplementation>(bool persist = false) where TType : class where TImplementation : TType
         {
@@ -317,7 +315,7 @@ namespace TechF.Test
         public void TestConstructorInjectionMissingValues()
         {
             var context = new ClassFactoryContext();
-            var props = new Dictionary<string, string>();
+            var props = ImmutableDictionary<string, string>.Empty;
             context.SetFactoryType<TestClassConstructorInjectionValue, TestClassConstructorInjectionValue>(props);
             context.Resolve<TestClassConstructorInjectionValue>();
         }
@@ -334,8 +332,8 @@ namespace TechF.Test
         public void TestNoPropertyBinding()
         {
             var context = new ClassFactoryContext();
-            var props = new Dictionary<string, string>();
-            props.Add("StringProperty", TestClassPropertyValues.StringProperty);
+            var props = ImmutableDictionary<string, string>.Empty
+                .Add("StringProperty", TestClassPropertyValues.StringProperty);
             context.SetFactoryType<TestClass, TestClass>(props).BindProperties = false;
             var o = context.Resolve<TestClass>();
             Assert.AreNotEqual(o.StringProperty, TestClassPropertyValues.StringProperty);
